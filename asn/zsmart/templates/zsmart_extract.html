@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Styles CSS */
+    .btn-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #291414;
+        padding: 10px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .zoneControle {
+        background-color: #333;
+        color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-custom {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 20px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-custom:hover {
+        background-color: #0056b3;
+    }
+
+    .table {
+        width: 100%;
+        margin-top: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .table th,
+    .table td {
+        text-align: center;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .format-fichier {
+        display: none;
+        margin-top: 10px;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center btn-nav">
+        <div class="d-flex flex-wrap gap-3">
+            <a href="{% url 'update_zsmart' %}" class="btn btn-primary"><i class="fas fa-sync-alt me-2"></i> Base AD</a>
+            <a href="{% url 'update_zsmart_tmp' %}" class="btn btn-primary"><i class="fas fa-sync-alt me-2"></i> Base DRH</a>
+            <a href="{% url 'fiabilisation_zsmart' %}" class="btn btn-primary"><i class="fas fa-sync-alt me-2"></i> Fiabilisation</a>
+        </div>
+        <div class="text-center text-md-start">
+            <h2 class="mb-3">Fiabilisation Zsmart</h2>
+            <div class="mb-3">
+                <h4 class="text-info">Total des entrées : {{ total_count }} <button id="export_zsmart_fiable" class="btn btn-sm btn-success"><i class="fas fa-file-download me-2"></i> Exporter</button></h4>
+                <p>Total des entrées <em>à garder</em> : {{ active_count }}</p>
+                <p>Comptes desc : {{ desc_count }}</p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center">
+            <a href="#" onclick="return confirm('Es-tu sûr de vouloir supprimer toutes les données ?')" class="text-danger me-3">
+                <i class="fas fa-trash-alt me-2"></i> Supprimer
+            </a>
+            <button type="button" class="btn-custom" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                <i class="fas fa-file-upload me-2"></i> Ajouter
+            </button>
+        </div>
+    </div>
+
+    <table id="data_table" class="table table-striped table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Compte</th>
+                <th scope="col">Nom</th>
+                <th scope="col">Statut Compte</th>
+                <th scope="col">Date Création</th>
+                <th scope="col">Verrouillé</th>
+                <th scope="col">Profil</th>
+                <th scope="col">Commentaire</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if all_zsmart_records %}
+                {% for zsmart_record in all_zsmart_records %}
+                    <tr>
+                        <td><a href="#" class="btn btn-primary btn-sm">{{ zsmart_record.id }}</a></td>
+                        <td>{{ zsmart_record.compte }}</td>
+                        <td>{{ zsmart_record.nom }}</td>
+                        <td>{{ zsmart_record.statut_compte }}</td>
+                        <td>{{ zsmart_record.date_creation }}</td>
+                        <td>{{ zsmart_record.verrouille }}</td>
+                        <td>{{ zsmart_record.profil }}</td>
+                        <td>{{ zsmart_record.commentaire }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div class="btn-nav d-flex justify-content-between align-items-center">
+    <div class="pagination">
+        {% if zsmart_records.has_previous %}
+            <a href="?page=1" class="p_item"><i class="fas fa-angle-double-left me-1"></i> Première</a>
+            <a href="?page={{ zsmart_records.previous_page_number }}" class="p_item"><i class="fas fa-chevron-left me-1"></i> Précédente</a>
+        {% endif %}
+        
+        <span class="current mx-3">Page {{ zsmart_records.number }} sur {{ zsmart_records.paginator.num_pages }}</span>
+        
+        {% if zsmart_records.has_next %}
+            <a href="?page={{ zsmart_records.next_page_number }}" class="p_item"><i class="fas fa-chevron-right me-1"></i> Suivante</a>
+            <a href="?page={{ zsmart_records.paginator.num_pages }}" class="p_item"><i class="fas fa-angle-double-right me-1"></i> Dernière</a>
+        {% endif %}
+    </div>
+    <button id="export_zsmart_fiable" class="btn btn-sm btn-success"><i class="fas fa-file-csv me-2"></i> Exporter Tous</button>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Importer des fichiers avec Zsmart</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'insert_extract_zsmart' %}">
+                    {% csrf_token %}
+                    <input type="file" name="file" accept=".xlsx,.csv,.xls" required>
+                    <div class="item_pos mt-3">
+                        <button type="button" class="btn btn-warning" onclick="toggleFormat()">Voir le format du fichier</button>
+                        <div class="format-fichier" id="show">
+                            <h3>Format du fichier :</h3>
+                            <p>compte</p>
+                            <p>nom</p>
+                            <p>statut_compte</p>
+                            <p>date_creation</p>
+                            <p>verrouille</p>
+                            <p>profil</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="submit" class="btn btn-primary">Importer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleFormat() {
+        const show = document.getElementById("show");
+        show.style.display = (show.style.display === "none") ? "block" : "none";
+    }
+
+    document.getElementById("export_zsmart_fiable").addEventListener("click", function () {
+        window.location.href = "{% url 'export_zsmart_fiable' %}";
+    });
+</script>
+
+{% endblock %}

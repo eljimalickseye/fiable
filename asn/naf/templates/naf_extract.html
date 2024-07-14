@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+
+    body{
+        font-size: 10px;
+    }
+    .btn-nav {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .p_item {
+        border: 1px black solid;
+        font-size: 12px;
+        margin: 5px;
+    }
+
+    .btn-size {
+        font-size: 10px;
+    }
+
+    .btn-custom {
+        background-color: #080808;
+        border: none;
+        border-radius: 20px;
+        color: white;
+        text-size-adjust: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-custom:hover {
+        background-color: #a9c6e4;
+    }
+</style>
+<div class="container mt-5">
+    <div class="d-flex justify-content-between mb-5">
+        <h2>Fiabilisation Des Acces</h2>
+        <button type="button" class="btn btn-primary">
+            <a class="nav-link" href="{% url 'update_naf' %}"> <i class="fas fa-sync-alt"></i> Mise a jour par rapport a l'AD </a>
+        </button>
+
+        <button type="button" class="btn btn-primary">
+            <a class="nav-link" href="{% url 'update_NAf_tmp' %}"><i class="fas fa-sync-alt"></i> Mise a jour par rapport a DRH </a>
+        </button>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <a class="nav-link" href="#" onclick="return confirm('Es-tu sûr de vouloir supprimer toutes les données ?') ? window.location.href='{% url 'supprimer_naf_data' %}' : false;">
+                <i class="fas fa-trash" style="color:rgb(220, 66, 66);font-size: 24px;"></i>
+            </a>
+            <div style="margin-right: 30px;">   </div>
+            <button type="button" class="btn-custom" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                <i class="fas fa-plus" ></i> Ajouter
+            </button>
+        </div>
+    </div>
+    <table id="data_table" class="table table-striped table-bordered table-sm table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Password</th>
+                <th scope="col">Profile</th>
+                <th scope="col">Locale</th>
+                <th scope="col">UserType</th>
+                <th scope="col">PasswordUpdateDate</th>
+                <th scope="col">Attempts</th>
+                <th scope="col">AccountLocked</th>
+                <th scope="col">LockedTime</th>
+                <th scope="col">isFirstPasswordChanged</th>
+                <th scope="col">MailAddress</th>
+                <th scope="col">Description</th>
+                <th scope="col">EmailNotification</th>
+                <th scope="col">commentaire</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if all_naf_records %}
+            {% for naf_record in all_naf_records %}
+            <tr>
+                <td>{{ naf_record.Name }}</td>
+                <td>{{ naf_record.Password }}</td>
+                <td>{{ naf_record.Profile }}</td>
+                <td>{{ naf_record.Locale }}</td>
+                <td>{{ naf_record.UserType }}</td>
+                <td>{{ naf_record.PasswordUpdateDate }}</td>
+                <td>{{ naf_record.Attempts }}</td>
+                <td>{{ naf_record.AccountLocked }}</td>
+                <td>{{ naf_record.LockedTime }}</td>
+                <td>{{ naf_record.isFirstPasswordChanged }}</td>
+                <td>{{ naf_record.MailAddress }}</td>
+                <td>{{ naf_record.Description }}</td>
+                <td>{{ naf_record.EmailNotification }}</td>
+                <td>{{ naf_record.commentaire }}</td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+<div class="btn-nav">
+    <div class="pagination">
+        {% if naf_records.has_previous %}
+        <a href="?page=1" class="p_item"><i class="fas fa-angle-double-left"></i> First </a>
+        <a href="?page={{ naf_records.previous_page_number }}" class="p_item"><i class="fas fa-chevron-left"></i> Previous</a>
+        {% endif %}
+
+        <span class="current">Page {{ naf_records.number }} of {{ naf_records.paginator.num_pages }}</span>
+
+        {% if naf_records.has_next %}
+        <a href="?page={{ naf_records.next_page_number }}" class="p_item"><i class="fas fa-chevron-right"></i> Next
+        </a>
+        <a href="?page={{ naf_records.paginator.num_pages }}" class="p_item"><i class="fas fa-angle-double-right"></i>
+            Last</a>
+        {% endif %}
+    </div>
+    <!-- <div>
+        <button id="export_naf_disabled" class="btn btn-size btn-danger"><i class="fas fa-trash"></i> naf inaftifs</button>
+    </div>
+    <div>
+        <button id="export_naf_actif" class="btn btn-size btn-success"><i class="fas fa-file-csv"></i> naf actifs</button>
+    </div>
+    <div>
+        <button id="export_data_to_csv" class="btn btn-size btn-success"><i class="fas fa-file-csv"></i> GNOC</button>
+    </div>
+    <div>
+        <button id="export_tmp_naf" class="btn btn-size btn-success"><i class="fas fa-file-csv"></i> Temporaires</button>
+    </div>
+    <div>
+        <button id="export_desc_naf" class="btn btn-size btn-success"><i class="fas fa-file-csv"></i> DESC</button>
+    </div> -->
+
+    <div>
+        <button id="export_naf_fiable" class="btn btn-size btn-success"><i class="fas fa-file-csv"></i> ALL</button>
+    </div>
+
+</div>
+</div>
+</div>
+
+
+<!-- Bouton pour ouvrir la modal -->
+
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Importer les fichiers avec un naf</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <form method="POST" enctype="multipart/form-data" action="{% url 'insert_extract_naf' %}">
+                    {% csrf_token %}
+                    <input type="file" name="file" accept=".xlsx,.csv,.xls" required>
+
+                    <style>
+                        /* Styles pour cacher l'élément par défaut */
+                        .item_pos {
+                            display: flex;
+                            flex-direction: row;
+                            column-gap: 10px;
+                            margin-top: 5px;
+                        }
+                    </style>
+                    <div id="show" style="display: none;">
+                        <h3>Format fichier</h3>
+                        <p>Name</p>
+                        <p>Password</p>
+                        <p>Profile</p>
+                        <p>Locale</p>
+                        <p>Description</p>
+                        <p>UserType</p>
+                        <p>PasswordUpdateDate</p>
+                        <p>MailAddress</p>
+                    </div>
+                    <div class="item_pos">
+                        <div>
+                            <button type="button" class="btn btn-warning" onclick="toggleElement()">Formats
+                                fichier</button>
+                        </div>
+
+                        <script>
+                            function toggleElement() {
+                                const show = document.getElementById("show");
+                                show.style.display = (show.style.display === "none") ? "block" : "none";
+                            }
+                        </script>
+                    </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="submit" class="btn btn-primary">Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+    document.getElementById("export_naf_fiable").addEventListener("click", function () {
+        window.location.href = "{% url 'export_naf_fiable' %}";
+    });
+
+</script>
+
+{% endblock %}

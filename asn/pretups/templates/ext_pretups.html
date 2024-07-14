@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+
+    body{
+        font-size: 10px;
+    }
+    .btn-nav {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .p_item {
+        border: 1px black solid;
+        font-size: 10px;
+        margin: 5px;
+    }
+
+    .btn-size {
+        font-size: 13px;
+    }
+
+    .btn-custom {
+        background-color: #080808;
+        border: none;
+        border-radius: 20px;
+        color: white;
+        text-size-adjust: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-custom:hover {
+        background-color: #a9c6e4;
+    }
+</style>
+<div class="container mt-5">
+    <div class="d-flex justify-content-between mb-5">
+            <h2>Fiabilisation Pretups</h2>
+           
+            <div>
+                <h4 style="color: aqua;">Total des entrées: {{ total_count }}</h4>
+                <p style="color: aliceblue;">Total des entrées actives: {{ active_count }}</p>
+            </div>
+        <div class="d-flex justify-content-between align-items-center">
+            <a class="nav-link" href="#" onclick="return confirm('Es-tu sûr de vouloir supprimer toutes les données ?') ? window.location.href='{% url 'supprimer_pretups_data' %}' : false;">
+                <i class="fas fa-trash" style="color:rgb(220, 66, 66);font-size: 24px;"></i>
+            </a>
+            <div style="margin-right: 30px;"></div>
+            <button type="button" class="btn-custom" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                <i class="fas fa-plus"></i> Ajouter
+            </button>
+        </div>
+
+    </div>
+    <table id="data_table" class="table table-striped table-bordered table-sm table-hover">
+        <thead class="table-dark">
+            <tr>
+                <!-- <th scope="col">ID</th> -->
+                <th scope="col">login_id</th>
+                <th scope="col">user_name</th>
+                <th scope="col">msisdn</th>
+                <th scope="col">status</th>
+                <th scope="col">last_login_on</th>
+                <th scope="col">employee_code</th>
+                <th scope="col">user_type</th>
+                <th scope="col">modified_on</th>
+                <th scope="col">created_on</th>
+                <th scope="col">role_code</th>
+                <th scope="col">group_role_code</th>
+                <th scope="col">role_name</th>
+                <th scope="col">parent_user_name</th>
+                <th scope="col">parent_msisdn</th>
+                <th scope="col">Traitement</th>
+                <th scope="col">Commentaire</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if all_extract_pretups %}
+            {% for extract_pretup in all_extract_pretups %}
+            <tr>
+                <!-- <td><a class="btn btn-size btn-primary btn-sm">{{ extract_pretup.id }}</a></td> -->
+                <td>{{ extract_pretup.login_id }}</td>
+                <td>{{ extract_pretup.user_name }}</td>
+                <td>{{ extract_pretup.msisdn }}</td>
+                <td>{{ extract_pretup.status }}</td>
+                <td>{{ extract_pretup.last_login_on }}</td>
+                <td>{{ extract_pretup.employee_code }}</td>
+                <td>{{ extract_pretup.user_type }}</td>
+                <td>{{ extract_pretup.modified_on }}</td>
+                <td>{{ extract_pretup.created_on }}</td>
+                <td>{{ extract_pretup.role_code }}</td>
+                <td>{{ extract_pretup.group_role_code }}</td>
+                <td>{{ extract_pretup.role_name }}</td>
+                <td>{{ extract_pretup.parent_user_name }}</td>
+                <td>{{ extract_pretup.parent_msisdn }}</td>
+                <td>{{ extract_pretup.traitement }}</td>
+                <td>{{ extract_pretup.commentaire }}</td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+<div class="btn-nav">
+    <div class="pagination">
+        {% if extract_pretups.has_previous %}
+        <a href="?page=1" class="p_item"><i class="fas fa-angle-double-left"></i> First </a>
+        <a href="?page={{ extract_pretups.previous_page_number }}" class="p_item"><i class="fas fa-chevron-left"></i> Previous</a>
+        {% endif %}
+
+        <span class="current">Page {{ extract_pretups.number }} of {{ extract_pretups.paginator.num_pages }}</span>
+
+        {% if extract_pretups.has_next %}
+        <a href="?page={{ extract_pretups.next_page_number }}" class="p_item"><i class="fas fa-chevron-right"></i> Next
+        </a>
+        <a href="?page={{ extract_pretups.paginator.num_pages }}" class="p_item"><i class="fas fa-angle-double-right"></i> Last</a>
+        {% endif %}
+    </div>
+    <div>
+        <button id="export_pretups_fiable" class="btn btn-size btn-success"><i class="fas fa-file-csv"></i>ALL</button>
+    </div>
+</div>
+
+<!-- Bouton pour ouvrir la modal -->
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Importer les fichiers Pretups</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'insert_pretups' %}">
+                    {% csrf_token %}
+                    <input type="file" name="file" accept=".xlsx,.csv,.xls" required>
+
+                    <style>
+                        .item_pos {
+                            display: flex;
+                            flex-direction: row;
+                            column-gap: 10px;
+                            margin-top: 5px;
+                        }
+                    </style>
+                    <div id="show" style="display: none;">
+                        <h3>Format fichier</h3>
+                        <p>login_id</p>
+                        <p>user_name</p>
+                        <p>msisdn</p>
+                        <p>status</p>
+                        <p>last_login_on</p>
+                        <p>employee_code</p>
+                        <p>user_type</p>
+                        <p>modified_on</p>
+                        <p>created_on</p>
+                        <p>role_code</p>
+                        <p>group_role_code</p>
+                        <p>role_name</p>
+                        <p>parent_user_name</p>
+                        <p>parent_msisdn</p>
+                    </div>
+                    <div class="item_pos">
+                        <div>
+                            <button type="button" class="btn btn-warning" onclick="toggleElement()">Formats fichier</button>
+                        </div>
+
+                        <script>
+                            function toggleElement() {
+                                const show = document.getElementById("show");
+                                show.style.display = (show.style.display === "none") ? "block" : "none";
+                            }
+                        </script>
+                    </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="submit" class="btn btn-primary">Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById("export_pretups_fiable").addEventListener("click", function () {
+    window.location.href = "{% url 'export_pretups_fiable' %}";
+});
+</script>
+
+{% endblock %}

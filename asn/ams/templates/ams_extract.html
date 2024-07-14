@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+    .btn-nav {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap; /* Permettre le retour à la ligne des boutons si nécessaire */
+    }
+
+    .p_item {
+        border: 1px solid black;
+        font-size: 12px;
+        padding: 5px 10px;
+        margin: 5px;
+        display: inline-block; /* Éviter le débordement des boutons */
+    }
+
+    .btn-size {
+        font-size: 13px;
+    }
+
+    .btn-custom {
+        background-color: #080808;
+        border: none;
+        border-radius: 20px;
+        color: white;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-custom:hover {
+        background-color: #a9c6e4;
+    }
+
+    /* Gestion du débordement dans le tableau */
+    #data_table {
+        table-layout: fixed; /* Fixer la largeur de la table */
+        width: 100%; /* Utiliser toute la largeur du conteneur parent */
+    }
+
+    #data_table th, #data_table td {
+        white-space: nowrap; /* Empêcher le texte de se couper dans les cellules */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Afficher des points de suspension si le texte dépasse */
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between mb-5">
+        <h2>Fiabilisation Des Acces</h2>
+        <button type="button" class="btn btn-primary">
+            <a class="nav-link" href="{% url 'update_ams' %}"> <i class="fas fa-sync-alt"></i> Mise à jour par rapport à l'AD </a>
+        </button>
+
+        <button type="button" class="btn btn-primary">
+            <a class="nav-link" href="{% url 'update_ams_tmp' %}"><i class="fas fa-sync-alt"></i> Mise à jour par rapport à DRH </a>
+        </button>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <a class="nav-link" href="#" onclick="return confirm('Es-tu sûr de vouloir supprimer toutes les données ?') ? window.location.href='{% url 'supprimer_ams_data' %}' : false;">
+                <i class="fas fa-trash" style="color: rgb(220, 66, 66); font-size: 24px;"></i>
+            </a>
+            <div style="margin-right: 30px;"></div>
+            <button type="button" class="btn-custom" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                <i class="fas fa-plus"></i> Ajouter
+            </button>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table id="data_table" class="table table-striped table-bordered table-sm table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col">id</th> 
+                    <th scope="col">user_id</th>
+                    <th scope="col">full_user_name</th>
+                    <th scope="col">email_address</th>
+                    <th scope="col">description</th>
+                    <th scope="col">password</th> 
+                    <th scope="col">change_password</th> 
+                    <th scope="col">bypass_password</th> 
+                    <th scope="col">roles</th>
+                    <th scope="col">allowed_path_group</th> 
+                    <th scope="col">use_global_max_number_of_concurrent_sessions</th> 
+                    <th scope="col">locked</th>
+                    <th scope="col">commentaire</th> 
+                </tr>
+            </thead>
+            <tbody>
+                {% if all_ams_records %}
+                {% for ams_record in all_ams_records %}
+                <tr>
+                    <td><a class="btn btn-size btn-primary btn-sm">{{ ams_record.id }}</a></td>
+                    <td>{{ ams_record.user_id }}</td>
+                    <td>{{ ams_record.full_user_name }}</td>
+                    <td>{{ ams_record.email_address }}</td>
+                    <td>{{ ams_record.description }}</td>
+                    <td>{{ ams_record.password }}</td> 
+                    <td>{{ ams_record.change_password }}</td> 
+                    <td>{{ ams_record.bypass_password }}</td> 
+                    <td>{{ ams_record.roles }}</td>
+                    <td>{{ ams_record.allowed_path_group }}</td> 
+                    <td>{{ ams_record.use_global_max_number_of_concurrent_sessions }}</td> 
+                    <td>{{ ams_record.locked }}</td>
+                    <td>{{ ams_record.commentaire }}</td> 
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="btn-nav">
+    <div class="pagination">
+        {% if ams_records.has_previous %}
+        <a href="?page=1" class="p_item"><i class="fas fa-angle-double-left"></i> First </a>
+        <a href="?page={{ ams_records.previous_page_number }}" class="p_item"><i class="fas fa-chevron-left"></i> Previous</a>
+        {% endif %}
+
+        <span class="current">Page {{ ams_records.number }} of {{ ams_records.paginator.num_pages }}</span>
+
+        {% if ams_records.has_next %}
+        <a href="?page={{ ams_records.next_page_number }}" class="p_item"><i class="fas fa-chevron-right"></i> Next
+        </a>
+        <a href="?page={{ ams_records.paginator.num_pages }}" class="p_item"><i class="fas fa-angle-double-right"></i>
+            Last</a>
+        {% endif %}
+    </div>
+
+    <div>
+        <button id="export_ams_fiable" class="btn btn-size btn-success"><i class="fas fa-file-csv"></i> Exporter tout</button>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Importer les fichiers avec AMS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'insert_extract_ams' %}">
+                    {% csrf_token %}
+                    <input type="file" name="file" accept=".xlsx,.csv,.xls" required>
+
+                    <div id="show" style="display: none;">
+                        <h3>Format fichier</h3>
+                        <p>user_id</p> 
+                        <p>full_user_name</p>
+                        <p>email_address</p>
+                        <p>description</p>
+                        <p>password</p> 
+                        <p>change_password</p> 
+                        <p>bypass_password</p> 
+                        <p>roles</p>
+                        <p>allowed_path_group</p> 
+                        <p>use_global_max_number_of_concurrent_sessions</p> 
+                        <p>locked</p>
+                        <p>commentaire</p> 
+                    </div>
+                    <div class="item_pos">
+                        <div>
+                            <button type="button" class="btn btn-warning" onclick="toggleElement()">Formats
+                                fichier</button>
+                        </div>
+                        <script>
+                            function toggleElement() {
+                                const show = document.getElementById("show");
+                                show.style.display = (show.style.display === "none") ? "block" : "none";
+                            }
+                        </script>
+                    </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="submit" class="btn btn-primary">Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById("export_ams_fiable").addEventListener("click", function () {
+        window.location.href = "{% url 'export_ams_fiable' %}";
+    });
+</script>
+
+{% endblock %}
