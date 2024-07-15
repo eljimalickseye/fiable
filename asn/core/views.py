@@ -5,7 +5,7 @@ from .forms import SignUpForm
 from django.db import connection
 import mysql.connector
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import AdMPReport, TemporaireDRH, CRBT, Extraction_user_pretups
+from .models import AdMPReport, TemporaireDRH, CRBT, Extraction_user_pretups,Compte_users_deleted
 from zoom.models import Extraction_zoom
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -911,45 +911,6 @@ def export_user_pretups_fiable(request):
     return response
 
 
-
-from django.db.models import Q
-
-# def update_from_user_pretups(extraction_model, name_field):
-#     # Critères de filtrage pour les enregistrements du modèle extraction
-#     criteres = ["pcci", "stl", "1431", "1413", "ksv", "w2c", "pop_", "pdist", "sitel", "psup",'tmp','TMP']
-
-#     # Initialisation de la requête avec un Q object vide
-#     query = Q()
-
-#     # Boucle sur les critères pour construire la requête
-#     for critere in criteres:
-#         query |= Q(**{f"{name_field}__istartswith": critere})
-
-#     # Filtrer les enregistrements en utilisant la requête construite
-#     extraction_records = extraction_model.objects.filter(query)
-
-#     # Récupérer tous les noms des enregistrements du modèle Extraction_user_pretups
-#     temporaire_records = Extraction_user_pretups.objects.values_list('login_id', flat=True)
-
-#     # Parcourir chaque enregistrement de extraction_records
-#     for extraction_record in extraction_records:
-#         name = getattr(extraction_record, name_field)
-#         traitement_fiabilisation = ""
-
-#         # Vérifier s'il y a une correspondance dans temporaire_records
-#         if name in temporaire_records:
-#             # Si une correspondance est trouvée, récupérer tous les enregistrements correspondants dans Extraction_user_pretups
-#             matching_records = Extraction_user_pretups.objects.filter(login_id=name)
-#             # Parcourir chaque enregistrement correspondant et les mettre à jour
-#             for temporaire_record in matching_records:
-#                 temporaire_record.traitement_fiabilisation = "*"
-#                 temporaire_record.save()
-#                 traitement_fiabilisation = temporaire_record.traitement_fiabilisation
-
-#         # Mettre à jour le champ traitement_fiabilisation dans l'enregistrement extraction
-#         extraction_record.traitement_fiabilisation = traitement_fiabilisation
-#         extraction_record.save()
-
 def update_from_user_pretups(extraction_model, name_field):
     # Récupérer tous les enregistrements de extraction_model
     extraction_records = extraction_model.objects.all()
@@ -980,7 +941,119 @@ def update_from_user_pretups(extraction_model, name_field):
 
 
 def update_test_user_pretups(request):
-    update_from_user_pretups(Extraction_zoom,"username")
+    update_from_user_pretups(Compte_users_deleted,"login_id")
 
 
     return redirect("user_pretups")
+
+
+def user_deleted(request):
+    # Récupérer tous les enregistrements
+    users = Compte_users_deleted.objects.all()
+
+    # Pagination
+    paginator = Paginator(users, 100)  # 100 enregistrements par page
+    page_number = request.GET.get('page')
+    try:
+        users = paginator.page(page_number)
+    except PageNotAnInteger:
+        # Si le numéro de page n'est pas un entier, afficher la première page
+        users = paginator.page(1)
+    except EmptyPage:
+        # Si la page est vide, afficher la dernière page
+        users = paginator.page(paginator.num_pages)
+
+    # Mettre en forme les enregistrements pour les inclure dans le contexte
+    all_users = []
+    for user in users:
+        all_users.append({
+            'id': user.id,
+            'login_id': user.login_id,
+        })
+
+    context = {
+        'all_users': all_users,
+    }
+
+    # Rendre la page d'accueil avec le contexte et les enregistrements paginés
+    return redirect('user_pretups')
+
+def inserer_user_data(connection, donnees):
+    cursor = connection.cursor()
+    try:
+        for index, row in donnees.iterrows():
+            # Conversion des clés en minuscules et gestion des valeurs nulles
+            row = {k.lower(): v for k, v in row.items()}
+            row = {k: v if pd.notnull(v) else None for k, v in row.items()}
+
+            # Extraction des valeurs des colonnes
+            login_id = row.get('login_id')
+
+
+            cursor.execute(
+                """
+                INSERT INTO core_compte_users_deleted (
+                    login_id
+                ) VALUES (%s)
+                """,
+                (login_id, )
+            )
+        
+        # Commit après toutes les opérations
+        connection.commit()
+        print("Données insérées avec succès.")
+    except mysql.connector.Error as e:
+        print("Erreur lors de l'insertion des données :", e)
+        connection.rollback()
+    finally:
+        cursor.close()
+
+def insert_user_deleted(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        form = Upload(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES['file']
+            # Vérifier si le fichier est un fichier Excel ou CSV
+            if file.name.endswith('.xls') or file.name.endswith('.xlsx'):
+                try:
+                    # Utiliser pandas pour lire les données du fichier Excel
+                    donnees = pd.read_excel(file)
+                except Exception as e:
+                    return HttpResponse("Erreur lors de la lecture du fichier Excel : {}".format(e))
+            elif file.name.endswith('.csv'):
+                try:
+                    # Utiliser pandas pour lire les données du fichier CSV
+                    donnees = pd.read_csv(file)
+                except Exception as e:
+                    return HttpResponse("Erreur lors de la lecture du fichier CSV : {}".format(e))
+            else:
+                return HttpResponse("Le fichier doit être au format Excel ou CSV.")
+            
+            # Connexion à la base de données MySQL
+            try:
+                connection = connect_to_database()
+
+                if connection.is_connected():
+                    print("Connexion à la base de données MySQL réussie.")
+                    inserer_user_data(connection, donnees)
+                    connection.close()
+                    print("Connexion à la base de données MySQL fermée.")
+            except mysql.connector.Error as e:
+                print("Erreur lors de la connexion à la base de données MySQL :", e)
+                return HttpResponse("Erreur lors de la connexion à la base de données MySQL")
+            except Exception as e:
+                print("Une erreur s'est produite lors de l'insertion des données dans la base de données MySQL :", e)
+                return HttpResponse("Une erreur s'est produite lors de l'insertion des données dans la base de données MySQL")
+            
+            return redirect('user_deleted')
+    else:
+        form = Upload()
+    return redirect('user_deleted')
+
+
+
+def supprimer_user_data(request):
+    # Supprimer toutes les données de votre modèle
+    Compte_users_deleted.objects.all().delete()
+
+    return redirect('user_pretups')

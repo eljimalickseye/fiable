@@ -66,3 +66,11 @@ class Extraction_user_pretups(models.Model):
 
     def __str__(self):
         return self.login_id
+    
+class Compte_users_deleted(models.Model):
+    id = models.AutoField(primary_key=True)
+    login_id = models.CharField(max_length=255,null=True, blank=True)
+
+
+    def __str__(self):
+        return self.login_id
